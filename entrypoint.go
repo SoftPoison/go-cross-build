@@ -155,7 +155,7 @@ func build(packageName, destDir string, platform map[string]string, ldflags stri
 		/*------------*/
 
 		// generate cleanup command
-		cleanCmd := exec.Command("rm", append([]string{"-f"}, includeFiles...)...)
+		cleanCmd := exec.Command("rm", append([]string{"-rf"}, includeFiles...)...)
 
 		// set working directory for the command
 		cleanCmd.Dir = destDirPath
