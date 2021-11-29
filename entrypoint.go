@@ -30,7 +30,7 @@ func fileExists(path string) bool {
 
 // copy file using `cp` command
 func copyFile(src, dest string) {
-	if err := exec.Command("cp", src, dest).Run(); err != nil {
+	if err := exec.Command("cp", "-r", src, dest).Run(); err != nil {
 		fmt.Println("An error occurred during copy operation:", src, "=>", dest)
 		os.Exit(1)
 	}
@@ -39,7 +39,7 @@ func copyFile(src, dest string) {
 /*************************************/
 
 // build the package for a platform
-func build(packageName, destDir string, platform map[string]string, ldflags string, compress bool) {
+func build(packageName, destDir string, platform map[string]string, ldflags string, compress bool, extraFiles string) {
 
 	// platform config
 	platformKernel := platform["kernel"]
@@ -99,45 +99,55 @@ func build(packageName, destDir string, platform map[string]string, ldflags stri
 		fmt.Printf("%s\n", output)
 	}
 
+	isWindows := platformArch == "windows"
+
 	/*------------------------------*/
 
-	// create a compressed `.tar.gz` file
+	// create a compressed archive
 	if compress {
 
 		// compressed gzip file name
-		gzFileName := fmt.Sprintf("%s-%s-%s.tar.gz", inputName, platformKernel, platformArch)
+		outFileName := fmt.Sprintf("%s-%s-%s", inputName, platformKernel, platformArch)
+		if isWindows {
+			outFileName += ".zip"
+		} else {
+			outFileName += ".tar.gz"
+		}
 
 		/*------------*/
 
 		// file to compress (default: build file)
 		includeFiles := []string{buildFileName}
 
-		// copy "README.md" file inside destination directory
-		if fileExists("README.md") {
-			copyFile("README.md", filepath.Join(destDirPath, "README.md"))
-			includeFiles = append(includeFiles, "README.md")
-		}
-
-		// copy "LICENSE" file inside destination directory
-		if fileExists("LICENSE") {
-			copyFile("LICENSE", filepath.Join(destDirPath, "LICENSE"))
-			includeFiles = append(includeFiles, "LICENSE")
+		// copy any extra files we want
+		for _, f := range strings.Split(extraFiles, " ") {
+			if fileExists(f) {
+				copyFile(f, filepath.Join(destDirPath, f))
+				includeFiles = append(includeFiles, f)
+			}
 		}
 
 		/*------------*/
 
-		// command-line options for the `tar` command
-		tarOptions := append([]string{"-cvzf", gzFileName}, includeFiles...)
+		// command-line options
+		compressOption := "-cvzf"
+		compressProgram := "tar"
+		if isWindows {
+			compressOption = "-9r"
+			compressProgram = "zip"
+		}
 
-		// generate `tar` command
-		tarCmd := exec.Command("tar", tarOptions...)
+		compressOptions := append([]string{compressOption, outFileName}, includeFiles...)
+
+		// generate the command
+		cmd := exec.Command(compressProgram, compressOptions...)
 
 		// set working directory for the command
-		tarCmd.Dir = destDirPath
+		cmd.Dir = destDirPath
 
-		// execute `tar` command
-		fmt.Println("Compressing build file using:", tarCmd.String())
-		if err := tarCmd.Run(); err != nil {
+		// execute the command
+		fmt.Println("Compressing build file using:", cmd.String())
+		if err := cmd.Run(); err != nil {
 			fmt.Println("An error occurred during compression:", err)
 			os.Exit(1)
 		}
@@ -170,6 +180,7 @@ func main() {
 	inputCompress := os.Getenv("INPUT_COMPRESS")
 	inputDest := os.Getenv("INPUT_DEST")
 	inputLdflags := os.Getenv("INPUT_LDFLAGS")
+	extraFiles := os.Getenv("INPUT_EXTRAS")
 
 	// package name to build
 	packageName := strings.ReplaceAll(inputPackage, " ", "")
@@ -199,7 +210,7 @@ func main() {
 		}
 
 		// execute `build` function
-		build(packageName, destDir, platformMap, inputLdflags, compress)
+		build(packageName, destDir, platformMap, inputLdflags, compress, extraFiles)
 	}
 
 	/*------------*/
