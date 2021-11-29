@@ -99,7 +99,7 @@ func build(packageName, destDir string, platform map[string]string, ldflags stri
 		fmt.Printf("%s\n", output)
 	}
 
-	isWindows := platformArch == "windows"
+	isWindows := platformKernel == "windows"
 
 	/*------------------------------*/
 
