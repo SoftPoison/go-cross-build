@@ -5,6 +5,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"runtime"
 	"strings"
 )
 
@@ -74,6 +75,15 @@ func build(packageName, destDir string, platform map[string]string, ldflags stri
 		packagePath = "."
 	} else {
 		packagePath = "./" + packageName
+	}
+
+	// static build if building for same kernel and arch as this machine
+	if runtime.GOOS == platformKernel && runtime.GOARCH == platformArch {
+		if ldflags != "" {
+			ldflags += " "
+		}
+
+		ldflags += "-linkmode external -extldflags \"-static\""
 	}
 
 	/*------------*/
