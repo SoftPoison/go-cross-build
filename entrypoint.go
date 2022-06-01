@@ -5,7 +5,6 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
-	"runtime"
 	"strings"
 )
 
@@ -78,7 +77,7 @@ func build(packageName, destDir string, platform map[string]string, ldflags stri
 	}
 
 	// static build if building for same kernel and arch as this machine
-	if runtime.GOOS == platformKernel && runtime.GOARCH == platformArch {
+	if platformKernel == "linux" && platformArch == "amd64" {
 		if ldflags != "" {
 			ldflags += " "
 		}
@@ -104,6 +103,9 @@ func build(packageName, destDir string, platform map[string]string, ldflags stri
 	fmt.Println("Creating a build using :", buildCmd.String())
 	if output, err := buildCmd.Output(); err != nil {
 		fmt.Println("An error occurred during build:", err)
+		if output != nil {
+			fmt.Printf("%s\n", output)
+		}
 		os.Exit(1)
 	} else {
 		fmt.Printf("%s\n", output)
