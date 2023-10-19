@@ -82,7 +82,7 @@ func build(packageName, destDir string, platform map[string]string, ldflags stri
 			ldflags += " "
 		}
 
-		ldflags += "-linkmode external -extldflags \"-static\""
+		ldflags += "-linkmode external -extldflags=\"-static\""
 	}
 
 	/*------------*/
@@ -100,11 +100,11 @@ func build(packageName, destDir string, platform map[string]string, ldflags stri
 	}...)
 
 	// execute `go build` command
-	fmt.Println("Creating a build using :", buildCmd.String())
+	fmt.Println("Creating a build using:", buildCmd.String(), "([go] ["+strings.Join(buildOptions, "] [")+"])")
 	if output, err := buildCmd.Output(); err != nil {
 		fmt.Println("An error occurred during build:", err)
-		if output != nil {
-			fmt.Printf("%s\n", output)
+		if ee, ok := err.(*exec.ExitError); ok {
+			fmt.Println(string(ee.Stderr))
 		}
 		os.Exit(1)
 	} else {
@@ -230,6 +230,9 @@ func main() {
 	// list files inside destination directory
 	if output, err := exec.Command("ls", "-alh", destDir).Output(); err != nil {
 		fmt.Println("An error occurred during ls operation:", err)
+		if ee, ok := err.(*exec.ExitError); ok {
+			fmt.Println(string(ee.Stderr))
+		}
 		os.Exit(1)
 	} else {
 		fmt.Println("--- BUILD FILES ---")
